@@ -119,22 +119,22 @@ col5,col6,col7,col8 = st.columns(4)
 
 with col5:
     with st.container(border=True,height="stretch"):
-       total_plots = df[(df["township_name"] == township) & (df["ownership"].isin(owner))]["plot_size_actual"].sum()
+       total_plots = df[(df["township_name"] == township) & (df["ownership"].isin(owner)) & (df["status"].isin(status)) & (df["registry_status"].isin(registry_status))]["plot_size_actual"].sum()
        st.markdown("**Total Size(SQFT)**")
        st.markdown(f"##### {total_plots:.0f}")
 with col6:
     with st.container(border=True,height="stretch"):
-       total_sales = df[(df["township_name"] == township) & (df["ownership"].isin(owner))]["plot_price"].agg("sum")
+       total_sales = df[(df["township_name"] == township) & (df["ownership"].isin(owner)) & (df["status"].isin(status)) & (df["registry_status"].isin(registry_status))]["plot_price"].agg("sum")
        st.markdown("**Total Sales**")
        st.markdown(f"##### {total_sales:,}")
 with col7:
     with st.container(border=True,height="stretch"):
-       total_received = df[(df["township_name"] == township) & (df["ownership"].isin(owner))]["amount_received"].sum()
+       total_received = df[(df["township_name"] == township) & (df["ownership"].isin(owner)) & (df["status"].isin(status)) & (df["registry_status"].isin(registry_status))]["amount_received"].sum()
        st.markdown("**Total Received**")
        st.markdown(f"##### {total_received:,}")
 with col8:
     with st.container(border=True,height="stretch"):
-       total_receivable = df[(df["township_name"] == township) & (df["ownership"].isin(owner))]["receivable"].sum()
+       total_receivable = df[(df["township_name"] == township) & (df["ownership"].isin(owner)) & (df["status"].isin(status)) & (df["registry_status"].isin(registry_status))]["receivable"].sum()
        st.markdown("**Total Receivable**")
        st.markdown(f"##### {total_receivable:,}")
 st.markdown("---")
