@@ -33,6 +33,8 @@ df = df.astype({'rate':'float', 'plot_price':'float',
 
 # Fill NaN with 0
 df = df.fillna(0)
+df = df.drop(columns="id")
+df = df.set_index("plot_no.")
 
 # Select township for working
 township = st.sidebar.selectbox("Township:",df["township_name"].unique())
@@ -94,6 +96,7 @@ else:
         "ownership == @owner & status ==@status & registry_status == registry_status"
     )
     st.dataframe(df_selection[df_selection["township_name"]== township])
+
 
 
 
