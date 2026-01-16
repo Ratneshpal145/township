@@ -9,12 +9,13 @@ sheet_id = "1okER7T-pSffxHfqkm_imKEkJpV7pVx3-wNOjpUuxVr8"
 gid = "0"
 url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
 df = pd.read_csv(url)
+
 # Renaming the column name as per standard
 df.columns = df.columns.str.replace(" ","_")
 df = df.rename(columns={"Plot_Size_(SQFT)_Actual":"Plot_Size_Actual","Plot_Size_(SQFT)_TNCP":"Plot_Size_TNCP","Diff_(Actual_-_TNCP)":"Diff_Size"})
 df.columns = df.columns.str.lower()
 
-# Clean The Dataset
+# Clean the Dataset
 df["rate"] = df["rate"].str.replace(",","")
 df["rate"] = df["rate"].str.replace('',"")
 df["amount_received"] = df["amount_received"].str.replace(",","")
@@ -37,30 +38,6 @@ df = df.fillna(0)
 township = st.sidebar.selectbox("Township:",df["township_name"].unique())
 st.header(township)
 
-# Display KPI's Crad
-col5,col6,col7,col8 = st.columns(4)
-
-with col5:
-    with st.container(border=True,height="stretch"):
-       total_plots = df[df["township_name"] == township]["plot_size_actual"].sum()
-       st.markdown("**Total Size(SQFT)**")
-       st.markdown(f"##### {total_plots:.0f}")
-with col6:
-    with st.container(border=True,height="stretch"):
-       total_sales = df[df["township_name"] == township]["plot_price"].agg("sum")
-       st.markdown("**Total Sales**")
-       st.markdown(f"##### {total_sales:,}")
-with col7:
-    with st.container(border=True,height="stretch"):
-       total_received = df[df["township_name"] == township]["amount_received"].sum()
-       st.markdown("**Total Received**")
-       st.markdown(f"##### {total_received:,}")
-with col8:
-    with st.container(border=True,height="stretch"):
-       total_receivable = df[df["township_name"] == township]["receivable"].sum()
-       st.markdown("**Total Receivable**")
-       st.markdown(f"##### {total_receivable:,}")
-st.markdown("---")
 # Making filter Columns
 owner = st.sidebar.multiselect(
         "Owner:",
@@ -80,6 +57,32 @@ registry_status =st.sidebar.multiselect(
 
 col = st.multiselect("Select columns:",df.columns)
 
+# Display KPI's based on Township and ownership
+
+col5,col6,col7,col8 = st.columns(4)
+
+with col5:
+    with st.container(border=True,height="stretch"):
+       total_plots = df[(df["township_name"] == township) & (df["ownership"].isin(owner))]["plot_size_actual"].sum()
+       st.markdown("**Total Size(SQFT)**")
+       st.markdown(f"##### {total_plots:.0f}")
+with col6:
+    with st.container(border=True,height="stretch"):
+       total_sales = df[(df["township_name"] == township) & (df["ownership"].isin(owner))]["plot_price"].agg("sum")
+       st.markdown("**Total Sales**")
+       st.markdown(f"##### {total_sales:,}")
+with col7:
+    with st.container(border=True,height="stretch"):
+       total_received = df[(df["township_name"] == township) & (df["ownership"].isin(owner))]["amount_received"].sum()
+       st.markdown("**Total Received**")
+       st.markdown(f"##### {total_received:,}")
+with col8:
+    with st.container(border=True,height="stretch"):
+       total_receivable = df[(df["township_name"] == township) & (df["ownership"].isin(owner))]["receivable"].sum()
+       st.markdown("**Total Receivable**")
+       st.markdown(f"##### {total_receivable:,}")
+st.markdown("---")
+
 
 if st.button("Filter Data"):
     df_selection = df.query(
@@ -91,7 +94,6 @@ else:
         "ownership == @owner & status ==@status & registry_status == registry_status"
     )
     st.dataframe(df_selection[df_selection["township_name"]== township])
-
 
 
 
