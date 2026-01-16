@@ -14,9 +14,15 @@ df.columns = df.columns.str.replace(" ","_")
 df = df.rename(columns={"Plot_Size_(SQFT)_Actual":"Plot_Size_Actual","Plot_Size_(SQFT)_TNCP":"Plot_Size_TNCP","Diff_(Actual_-_TNCP)":"Diff_Size"})
 df.columns = df.columns.str.lower()
 
-# Clean the Dataset
+# Clean The Dataset
 df["rate"] = df["rate"].str.replace(",","")
+df["rate"] = df["rate"].str.replace('',"")
 df["amount_received"] = df["amount_received"].str.replace(",","")
+df["amount_received"] = df["amount_received"].str.replace('',"")
+df["plot_price"] = df["plot_price"].str.replace(",","")
+df["plot_price"] = df["plot_price"].str.replace('',"")
+df["receivable"] = df["receivable"].str.replace(",","")
+df["receivable"] = df["receivable"].str.replace('',"")
 
 # Change the data types
 df = df.astype({'rate':'float', 'plot_price':'float',
@@ -85,6 +91,7 @@ else:
         "ownership == @owner & status ==@status & registry_status == registry_status"
     )
     st.dataframe(df_selection[df_selection["township_name"]== township])
+
 
 
 
