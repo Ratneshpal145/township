@@ -100,8 +100,6 @@ registry_status =st.sidebar.multiselect(
         default=df[df["township_name"] == township]["registry_status"].unique()
 )
 
-col = st.multiselect("Select columns:",df.columns)
-
 # Display KPI's based on Township and ownership
 
 col5,col6,col7,col8 = st.columns(4)
@@ -128,6 +126,7 @@ with col8:
        st.markdown(f"##### {total_receivable:,}")
 st.markdown("---")
 
+col = st.multiselect("Select columns:",df.columns)
 
 if st.button("Filter Data"):
     df_selection = df.query(
@@ -139,6 +138,7 @@ else:
         "ownership == @owner & status ==@status & registry_status == registry_status"
     )
     st.dataframe(df_selection[df_selection["township_name"]== township])
+
 
 
 
