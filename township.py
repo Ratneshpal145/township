@@ -4,6 +4,47 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+# ---- Sidebar Font Size Styling ----
+st.markdown("""
+<style>
+/* Sidebar label text */
+section[data-testid="stSidebar"] label {
+    font-size: 24px !important;
+    font-weight: 600;
+}
+
+/* Sidebar multiselect selected values */
+section[data-testid="stSidebar"] div[data-baseweb="select"] span {
+    font-size: 14px !important;
+}
+
+/* Sidebar multiselect dropdown options */
+section[data-testid="stSidebar"] ul li {
+    font-size: 14px !important;
+}
+/* Sidebar header */
+section[data-testid="stSidebar"] .css-1d391kg h2 {
+    font-size: 18px !important;
+    font-weight: 700 !important;
+}
+
+/* background color of sidebar */
+section[data-testid="stSidebar"] {
+    background-color: #6A89A7;
+}
+/* background color of main area */
+section[data-testid="stMain"] {
+    background-color: #01B8AA;
+}
+/* Main Area Header*/
+section[data-testid="stMain"] .css-1d391kg h1 {
+    font-size: 24px !important;
+}
+
+</style>
+""", unsafe_allow_html=True)
+st.set_page_config(page_title="Township Dashboard", page_icon=":bar_chart:", layout="wide")
+
 # Load the Dataset
 sheet_id = "1okER7T-pSffxHfqkm_imKEkJpV7pVx3-wNOjpUuxVr8"
 gid = "0"
@@ -41,10 +82,12 @@ township = st.sidebar.selectbox("Township:",df["township_name"].unique())
 st.header(township)
 
 # Making filter Columns
+
 owner = st.sidebar.multiselect(
         "Owner:",
         options= df[df["township_name"] == township]["ownership"].unique(),
-        default=df[df["township_name"] == township]["ownership"].unique()
+        default=df[df["township_name"] == township]["ownership"].unique(),
+        label_visibility="visible"
 )
 status =st.sidebar.multiselect(
         "Status:",
@@ -96,7 +139,6 @@ else:
         "ownership == @owner & status ==@status & registry_status == registry_status"
     )
     st.dataframe(df_selection[df_selection["township_name"]== township])
-
 
 
 
