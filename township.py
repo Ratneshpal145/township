@@ -8,10 +8,21 @@ st.sidebar.title("Filters")
 # ---- Sidebar Font Size Styling ----
 st.markdown("""
 <style>
+/* Change top header background */
+header[data-testid="stHeader"] {
+    background-color: #00b3a4;   /* Your green color */
+}
+
 /* Sidebar label text */
 section[data-testid="stSidebar"] label {
     font-size: 24px !important;
     font-weight: 600;
+}
+            
+/* Optional: remove Streamlit default padding above header */
+.block-container {
+    padding-top: 2rem;
+    width: 100%;
 }
 
 /* Sidebar multiselect selected values */
