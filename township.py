@@ -3,8 +3,6 @@ import streamlit as st
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
 # ---- Sidebar Title ----
 st.sidebar.title("Filters")
 # ---- Sidebar Font Size Styling ----
@@ -170,6 +168,7 @@ else:
         "ownership == @owner & status ==@status & registry_status == registry_status"
     )
     st.dataframe(df_selection[df_selection["township_name"]== township])
+
 
 
 
