@@ -3,6 +3,8 @@ import streamlit as st
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 # ---- Sidebar Title ----
 st.sidebar.title("Filters")
 # ---- Sidebar Font Size Styling ----
@@ -98,7 +100,7 @@ df = df.astype({'rate':'float', 'plot_price':'float',
 # Fill NaN with 0
 df = df.fillna(0)
 df = df.drop(columns="id")
-df = df.set_index("plot_no.")
+# df = df.set_index("plot_no.")
 
 # Select township for working
 township = st.sidebar.selectbox("Township:",df["township_name"].unique())
@@ -149,6 +151,12 @@ with col8:
        st.markdown("**Total Receivable**")
        st.markdown(f"##### {total_receivable:,}")
 st.markdown("---")
+
+# checking Plot wise data
+plot_no = st.selectbox("Select Plot No:",df[df["township_name"] == township]["plot_no."])
+if submit := st.button("Show Plot Details"):
+    st.dataframe(df[(df["township_name"] == township) & (df["plot_no."]== plot_no)])
+
 
 col = st.multiselect("Select columns:",df.columns)
 
