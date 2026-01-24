@@ -1,174 +1,229 @@
 import pandas as pd
-import streamlit as st
 import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
-# ---- Sidebar Title ----
-st.sidebar.title("Filters")
-# ---- Sidebar Font Size Styling ----
+import streamlit as st
+import gspread
+from google.oauth2.service_account import Credentials
+import datetime
+
+# -------------------------------------------------
+# STREAMLIT PAGE CONFIG
+# -------------------------------------------------
+st.set_page_config(
+    page_title="Township Dashboard",
+    page_icon="🏘️",
+    layout="wide"
+)
+
+# -------------------------------------------------
+# CUSTOM CSS
+# -------------------------------------------------
 st.markdown("""
 <style>
-/* Change top header background */
-header[data-testid="stHeader"] {
-    background-color: #00b3a4;   /* Your green color */
-}
-
-/* Sidebar label text */
-section[data-testid="stSidebar"] label {
-    font-size: 24px !important;
-    font-weight: 600;
-}
-            
-/* Optional: remove Streamlit default padding above header */
-.block-container {
-    padding-top: 2rem;
-    width: 100%;
-}
-
-/* Sidebar multiselect selected values */
-section[data-testid="stSidebar"] div[data-baseweb="select"] span {
-    font-size: 14px !important;
-    background-color: #87CEFA !important;
-    color: #000000 !important;
-}
-
-/* Sidebar multiselect dropdown options */
-section[data-testid="stSidebar"] ul li {
-    font-size: 14px !important;
-    background-color: #6A89A7 !important;
-}
-/* Sidebar header */
-section[data-testid="stSidebar"] .css-1d391kg h2 {
-    font-size: 18px !important;
-    font-weight: 700 !important;
-}
-
-/* background color of sidebar */
-section[data-testid="stSidebar"] {
-    background-color: #40E0D0;
-}
-/* background color of main area */
-section[data-testid="stMain"] {
-    background-color: #01B8AA;
-}
-/* Main Area Header*/
-section[data-testid="stMain"] .css-1d391kg h1 {
-    font-size: 24px !important;
-}
-
-/* KPI container styling */
-div[role="listitem"] {
-    background-color: #40E0D0;
-}
-/* full page background color */
-body {
-    background-color: #01B8AA;
-
+header[data-testid="stHeader"] {background-color: #00b3a4;}
+section[data-testid="stSidebar"] {background-color: #40E0D0;}
+section[data-testid="stSidebar"] label {font-size:18px;font-weight:600;}
+section[data-testid="stMain"] {background-color: #01B8AA;}
+body {background-color: #01B8AA;}
 </style>
 """, unsafe_allow_html=True)
-st.set_page_config(page_title="Township Dashboard", page_icon=":bar_chart:", layout="wide")
 
-# Load the Dataset
-sheet_id = "1okER7T-pSffxHfqkm_imKEkJpV7pVx3-wNOjpUuxVr8"
-gid = "0"
-url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
-df = pd.read_csv(url)
+# -------------------------------------------------
+# GOOGLE SHEET CONNECTION (WITH GID)
+# -------------------------------------------------
+def load_google_sheet():
+    try:
+        scope = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive"
+        ]
 
-# Renaming the column name as per standard
-df.columns = df.columns.str.replace(" ","_")
-df = df.rename(columns={"Plot_Size_(SQFT)_Actual":"Plot_Size_Actual","Plot_Size_(SQFT)_TNCP":"Plot_Size_TNCP","Diff_(Actual_-_TNCP)":"Diff_Size"})
-df.columns = df.columns.str.lower()
+        creds = Credentials.from_service_account_file(
+            "service_account.json",
+            scopes=scope
+        )
 
-# Clean the Dataset
-df["rate"] = df["rate"].str.replace(",","")
-df["rate"] = df["rate"].str.replace('',"")
-df["amount_received"] = df["amount_received"].str.replace(",","")
-df["amount_received"] = df["amount_received"].str.replace('',"")
-df["plot_price"] = df["plot_price"].str.replace(",","")
-df["plot_price"] = df["plot_price"].str.replace('',"")
-df["receivable"] = df["receivable"].str.replace(",","")
-df["receivable"] = df["receivable"].str.replace('',"")
+        client = gspread.authorize(creds)
 
-# Change the data types
-df = df.astype({'rate':'float', 'plot_price':'float',
-       'amount_received':'float', 'receivable':'float',
-       'registry_number':'str','contact_number':"str",
-       'cheque_number':'str'})
+        SPREADSHEET_ID = "1okER7T-pSffxHfqkm_imKEkJpV7pVx3-wNOjpUuxVr8"
+        GID = 0   # <-- change if your sheet tab GID is different
 
-# Fill NaN with 0
-df = df.fillna(0)
-df = df.drop(columns="id")
-# df = df.set_index("plot_no.")
+        sheet = client.open_by_key(SPREADSHEET_ID)
 
-# Select township for working
-township = st.sidebar.selectbox("Township:",df["township_name"].unique())
-st.header(township)
+        worksheet = None
+        for ws in sheet.worksheets():
+            if ws.id == GID:
+                worksheet = ws
+                break
 
-# Making filter Columns
+        if worksheet is None:
+            st.error(f"❌ Worksheet with GID {GID} not found")
+            st.stop()
 
-owner = st.sidebar.multiselect(
-        "Owner:",
-        options= df[df["township_name"] == township]["ownership"].unique(),
-        default=df[df["township_name"] == township]["ownership"].unique(),
-        label_visibility="visible"
+        data = worksheet.get_all_records()
+        df = pd.DataFrame(data)
+
+        return df, worksheet
+
+    except Exception as e:
+        st.error(f"❌ Google Sheet connection failed: {e}")
+        st.stop()
+
+
+df, worksheet = load_google_sheet()
+
+# -------------------------------------------------
+# DATA CLEANING
+# -------------------------------------------------
+df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_")
+
+# Rename only if these original names exist
+rename_map = {
+    "plot_size_(sqft)_actual": "plot_size_actual",
+    "plot_size_(sqft)_tncp": "plot_size_tncp",
+    "diff_(actual_-_tncp)": "diff_size"
+}
+df.rename(columns={k:v for k,v in rename_map.items() if k in df.columns}, inplace=True)
+
+numeric_cols = [
+    "rate","amount_received","plot_price",
+    "receivable","plot_size_actual","registry_amount"
+]
+
+for col in numeric_cols:
+    if col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+
+if "registry_date" in df.columns:
+    df["registry_date"] = pd.to_datetime(df["registry_date"], errors="coerce")
+
+# -------------------------------------------------
+# SIDEBAR FILTERS
+# -------------------------------------------------
+st.sidebar.title("Filters")
+
+township = st.sidebar.selectbox(
+    "Select Township",
+    df["township_name"].unique()
 )
-status =st.sidebar.multiselect(
-        "Status:",
-        options= df[df["township_name"] == township]["status"].unique(),
-        default=df[df["township_name"] == township]["status"].unique()
-)
-registry_status =st.sidebar.multiselect(
-        "Registry Status:",
-        options= df[df["township_name"] == township]["registry_status"].unique(),
-        default=df[df["township_name"] == township]["registry_status"].unique()
+
+owner_filter = st.sidebar.multiselect(
+    "Owner",
+    options=df[df["township_name"] == township]["ownership"].unique(),
+    default=df[df["township_name"] == township]["ownership"].unique()
 )
 
+status_filter = st.sidebar.multiselect(
+    "Status",
+    options=df[df["township_name"] == township]["status"].unique(),
+    default=df[df["township_name"] == township]["status"].unique()
+)
 
-# Display KPI's based on Township and ownership
+registry_filter = st.sidebar.multiselect(
+    "Registry Status",
+    options=df[df["township_name"] == township]["registry_status"].unique(),
+    default=df[df["township_name"] == township]["registry_status"].unique()
+)
 
-col5,col6,col7,col8 = st.columns(4)
+# -------------------------------------------------
+# FILTERED DATA
+# -------------------------------------------------
+df_filtered = df[
+    (df["township_name"] == township) &
+    (df["ownership"].isin(owner_filter)) &
+    (df["status"].isin(status_filter)) &
+    (df["registry_status"].isin(registry_filter))
+]
 
-with col5:
-    with st.container(border=True,height="stretch"):
-       total_plots = df[(df["township_name"] == township) & (df["ownership"].isin(owner)) & (df["status"].isin(status)) & (df["registry_status"].isin(registry_status))]["plot_size_actual"].sum()
-       st.markdown("**Total Size(SQFT)**")
-       st.markdown(f"##### {total_plots:.0f}")
-with col6:
-    with st.container(border=True,height="stretch"):
-       total_sales = df[(df["township_name"] == township) & (df["ownership"].isin(owner)) & (df["status"].isin(status)) & (df["registry_status"].isin(registry_status))]["plot_price"].agg("sum")
-       st.markdown("**Total Sales**")
-       st.markdown(f"##### {total_sales:,}")
-with col7:
-    with st.container(border=True,height="stretch"):
-       total_received = df[(df["township_name"] == township) & (df["ownership"].isin(owner)) & (df["status"].isin(status)) & (df["registry_status"].isin(registry_status))]["amount_received"].sum()
-       st.markdown("**Total Received**")
-       st.markdown(f"##### {total_received:,}")
-with col8:
-    with st.container(border=True,height="stretch"):
-       total_receivable = df[(df["township_name"] == township) & (df["ownership"].isin(owner)) & (df["status"].isin(status)) & (df["registry_status"].isin(registry_status))]["receivable"].sum()
-       st.markdown("**Total Receivable**")
-       st.markdown(f"##### {total_receivable:,}")
-st.markdown("---")
+st.header(f"🏘️ {township}")
 
-# checking Plot wise data
-plot_no = st.selectbox("Select Plot No:",df[df["township_name"] == township]["plot_no."])
-if submit := st.button("Show Plot Details"):
-    st.dataframe(df[(df["township_name"] == township) & (df["plot_no."]== plot_no)])
+# -------------------------------------------------
+# KPI SECTION
+# -------------------------------------------------
+c1,c2,c3,c4 = st.columns(4)
 
-
-col = st.multiselect("Select columns:",df.columns)
-
-if st.button("Filter Data"):
-    df_selection = df.query(
-        "ownership == @owner & status ==@status & registry_status == registry_status"
-    )
-    st.dataframe(df_selection[df_selection["township_name"]== township][col])
+if "plot_size_actual" in df_filtered.columns:
+    c1.metric("Total Size (SQFT)", f"{df_filtered['plot_size_actual'].sum():,.2f}")
 else:
-    df_selection = df.query(
-        "ownership == @owner & status ==@status & registry_status == registry_status"
-    )
-    st.dataframe(df_selection[df_selection["township_name"]== township])
+    c1.metric("Total Size (SQFT)", "Column not found")
 
+c2.metric("Total Sales", f"{df_filtered['plot_price'].sum():,.0f}")
+c3.metric("Total Received", f"{df_filtered['amount_received'].sum():,.0f}")
+c4.metric("Total Receivable", f"{df_filtered['receivable'].sum():,.0f}")
 
+st.divider()
 
+# -------------------------------------------------
+# PLOT DETAILS
+# -------------------------------------------------
+plot_no = st.selectbox(
+    "Select Plot No",
+    df_filtered["plot_no."].unique()
+)
 
+selected_plot = df_filtered[df_filtered["plot_no."] == plot_no]
+st.dataframe(selected_plot, use_container_width=True)
+
+# -------------------------------------------------
+# UPDATE SECTION
+# -------------------------------------------------
+with st.expander("✏️ Update Plot Details"):
+
+    editable_fields = [
+        'status','plot_size_actual','rate','plot_price',
+        'amount_received','registry_status','registry_date',
+        'registry_number','buyer_name','contact_number',
+        'cheque_number','registry_amount'
+    ]
+
+    field_to_update = st.selectbox("Select Field", editable_fields)
+
+    if field_to_update in numeric_cols:
+        new_value = st.number_input("Enter New Value", value=0.0)
+    elif field_to_update == "registry_date":
+        new_value = st.date_input("Select Date", datetime.date.today())
+    else:
+        new_value = st.text_input("Enter New Value")
+
+    if st.button("Update Plot Info"):
+
+        # Update local dataframe
+        df.loc[
+            (df["township_name"] == township) &
+            (df["plot_no."] == plot_no),
+            field_to_update
+        ] = new_value
+
+        # ---- Clean dataframe for Google Sheets ----
+        df_clean = df.copy()
+        df_clean.replace([np.inf, -np.inf], "", inplace=True)
+        df_clean = df_clean.fillna("")
+
+        for col in df_clean.columns:
+            if pd.api.types.is_datetime64_any_dtype(df_clean[col]):
+                df_clean[col] = df_clean[col].astype(str)
+
+        # ---- Push to Google Sheet ----
+        try:
+            worksheet.update(
+                "A1",
+                [df_clean.columns.tolist()] + df_clean.values.tolist()
+            )
+            st.success("✅ Plot updated successfully!")
+            st.rerun()
+
+        except Exception as e:
+            st.error(f"❌ Sheet update failed: {e}")
+
+# -------------------------------------------------
+# COLUMN VIEW
+# -------------------------------------------------
+st.divider()
+st.subheader("📊 View Filtered Data")
+
+selected_columns = st.multiselect(
+    "Select Columns",
+    df_filtered.columns.tolist(),
+    default=df_filtered.columns.tolist()
+)
+
+st.dataframe(df_filtered[selected_columns], use_container_width=True)
