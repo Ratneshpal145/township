@@ -4,7 +4,7 @@ import streamlit as st
 import gspread
 from google.oauth2.service_account import Credentials
 import datetime
-
+import json
 # -------------------------------------------------
 # STREAMLIT PAGE CONFIG
 # -------------------------------------------------
@@ -37,8 +37,10 @@ def load_google_sheet():
             "https://www.googleapis.com/auth/drive"
         ]
 
-        creds = Credentials.from_service_account_file(
-            "service_account.json",
+        creds_dict = dict(st.secrets["gcp_service_account"])
+
+        creds = Credentials.from_service_account_info(
+            creds_dict,
             scopes=scope
         )
 
