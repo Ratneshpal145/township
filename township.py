@@ -183,6 +183,11 @@ with st.expander("✏️ Update Plot Details"):
         new_value = st.number_input("Enter New Value", value=0.0)
     elif field_to_update == "registry_date":
         new_value = st.date_input("Select Date", datetime.date.today())
+    elif field_to_update == "status":
+        new_value = st.selectbox(
+            "Select New Status",
+            options=df["status"].unique()
+        )
     else:
         new_value = st.text_input("Enter New Value")
 
@@ -229,3 +234,4 @@ selected_columns = st.multiselect(
 )
 
 st.dataframe(df_filtered[selected_columns], use_container_width=True)
+
