@@ -97,6 +97,10 @@ for col in numeric_cols:
 
 if "registry_date" in df.columns:
     df["registry_date"] = pd.to_datetime(df["registry_date"], errors="coerce")
+if "plot_price" in df.columns and "amount_received" in df.columns:
+    df["receivable"] = (
+        df["plot_price"].fillna(0) - df["amount_received"].fillna(0)
+    ).round(2)
 
 # -------------------------------------------------
 # SIDEBAR FILTERS
@@ -239,5 +243,6 @@ selected_columns = st.multiselect(
 )
 
 st.dataframe(df_filtered[selected_columns], use_container_width=True)
+
 
 
